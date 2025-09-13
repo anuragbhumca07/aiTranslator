@@ -16,7 +16,7 @@ import PyPDF2
 from dotenv import load_dotenv
 
 # ---- Load .env (if present) ----
-load_dotenv()
+# load_dotenv()
 
 # ---- Try import google generative SDK ----
 try:
@@ -48,26 +48,37 @@ LANGUAGE_OPTIONS = {
 
 # ---- Helpers ----
 
-def configure_genai_from_env():
-    """
-    Configure and return the genai module (with configured API key) or None if not available.
-    Looks for GEMINI_API_KEY or GOOGLE_API_KEY in env.
-    """
-    if not GENAI_AVAILABLE:
-        return None
+def configure_genai():
+    api_key = st.secrets["gcp"]["api_key"]
+    genai.configure(api_key=api_key)
+    return genai
 
-    api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        # No key found
-        return None
+# def configure_genai_from_env():
+#     """
+#     Configure genai client if available and API key present.
+#     Prefer st.secrets (Streamlit Cloud) or environment variables.
+#     """
+#     import google.generativeai as genai
+#     api_key = None
 
-    try:
-        # configure global api key for genai module
-        genai.configure(api_key=api_key)
-        return genai
-    except Exception:
-        # if configure() doesn't exist or fails, still try returning module
-        return genai
+#     # Try Streamlit secrets first
+#     if "GEMINI_API_KEY" in st.secrets:
+#         api_key = st.secrets["GEMINI_API_KEY"]
+#     else:
+#         # Fall back to environment variables
+#         api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+
+#     if not api_key:
+#         st.error("❌ No Gemini API key found. Please set it in .streamlit/secrets.toml or as an environment variable.")
+#         return None
+
+#     try:
+#         genai.configure(api_key=api_key)
+#         print("✅ GenAI client configured successfully")
+#         return genai
+#     except ImportError:
+#         st.error("❌ google-generativeai SDK not installed. Run: pip install google-generativeai")
+#         return None
 
 
 def translate_with_gemini(genai_module, model_name: str, text: str, target_language_name: str) -> str:
@@ -223,7 +234,8 @@ def main():
         st.write("google-generativeai installed:", GENAI_AVAILABLE)
 
     # Configure genai client (if available)
-    client = configure_genai_from_env()
+    # client = configure_genai_from_env()
+    client = configure_genai()
     if client is None and GENAI_AVAILABLE:
         # SDK present but key missing
         st.warning("Gemini SDK is installed but no API key found. Set GEMINI_API_KEY or GOOGLE_API_KEY in environment or a .env file.")
@@ -348,7 +360,8 @@ def main():
                 st.error("No input text found. Please enter text or upload a text file.")
             else:
                 # Prepare genai client
-                client = configure_genai_from_env()
+                # client = configure_genai_from_env()
+                client = configure_genai()
                 if client is None:
                     st.error("Gemini client not configured. Ensure GEMINI_API_KEY or GOOGLE_API_KEY environment variable is set and the google-generativeai package is installed.")
                 else:
